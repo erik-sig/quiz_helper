@@ -107,6 +107,9 @@ def ask_google(image: Image.Image, model: str) -> str:
             types.Part.from_bytes(data=buffer.getvalue(), mime_type="image/png"),
             PROMPT,
         ],
+        config=types.GenerateContentConfig(
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
+        ),
     )
     return response.text
 
