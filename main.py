@@ -101,22 +101,28 @@ def on_trigger():
         return
     processing.set()
 
-    overlay.show_loading()
-
+    print("[INFO] Abrindo seleção de região...")
     region = capture_region()
 
     if region is None:
-        overlay.close()
+        print("[INFO] Seleção cancelada.")
         processing.clear()
         return
 
+    print(f"[INFO] Região capturada: {region}")
+    overlay.show_loading()
+
     def run():
         try:
+            print("[INFO] Capturando screenshot...")
             image = take_screenshot(region)
+            print("[INFO] Enviando para a IA...")
             answer = ask_question(image, selected_provider, selected_model)
+            print(f"[INFO] Resposta recebida:\n{answer}")
             overlay.close()
             overlay.show(answer)
         except Exception as e:
+            print(f"[ERRO] {type(e).__name__}: {e}")
             overlay.close()
             overlay.show(f"Erro: {e}")
         finally:
