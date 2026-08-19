@@ -111,7 +111,11 @@ def ask_google(image: Image.Image, model: str) -> str:
             automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
         ),
     )
-    return response.text
+    print(f"[DEBUG] Gemini finish_reason: {response.candidates[0].finish_reason if response.candidates else 'sem candidatos'}")
+    text = response.text
+    if not text:
+        return "Gemini não retornou resposta. Possível bloqueio por filtro de segurança."
+    return text
 
 
 _HANDLERS = {
