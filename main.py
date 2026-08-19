@@ -119,12 +119,10 @@ def on_trigger():
             print("[INFO] Enviando para a IA...")
             answer = ask_question(image, selected_provider, selected_model)
             print(f"[INFO] Resposta recebida:\n{answer}")
-            overlay.close()
-            overlay.show(answer)
+            overlay.update(answer)
         except Exception as e:
             print(f"[ERRO] {type(e).__name__}: {e}")
-            overlay.close()
-            overlay.show(f"Erro: {e}")
+            overlay.update(f"Erro: {type(e).__name__}\n{e}")
         finally:
             processing.clear()
 

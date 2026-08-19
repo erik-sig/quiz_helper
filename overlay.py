@@ -5,16 +5,11 @@ import threading
 class AnswerOverlay:
     def __init__(self):
         self.root = None
+        self.text_widget = None
         self._thread = None
+        self._ready = threading.Event()
 
-    def show(self, text: str):
-        if self.root:
-            self.close()
-
-        self._thread = threading.Thread(target=self._run, args=(text,), daemon=True)
-        self._thread.start()
-
-    def _run(self, text: str):
+    def _run(self):
         self.root = tk.Tk()
         self.root.title("")
         self.root.attributes("-topmost", True)
@@ -51,7 +46,7 @@ class AnswerOverlay:
 
         tk.Frame(frame, bg="#00FF88", height=1).pack(fill=tk.X, pady=(4, 8))
 
-        text_widget = tk.Text(
+        self.text_widget = tk.Text(
             frame,
             bg="#1a1a2e",
             fg="white",
@@ -59,24 +54,16 @@ class AnswerOverlay:
             wrap=tk.WORD,
             bd=0,
             highlightthickness=0,
-            state=tk.NORMAL,
             width=48,
+            height=3,
         )
-        text_widget.insert(tk.END, text)
-        text_widget.config(state=tk.DISABLED)
-        text_widget.pack()
+        self.text_widget.insert(tk.END, "Analisando questão...")
+        self.text_widget.config(state=tk.DISABLED)
+        self.text_widget.pack()
 
-        # tamanho e posição (canto inferior direito)
-        self.root.update_idletasks()
-        w = self.root.winfo_reqwidth()
-        h = self.root.winfo_reqheight()
-        sw = self.root.winfo_screenwidth()
-        sh = self.root.winfo_screenheight()
-        x = sw - w - 20
-        y = sh - h - 60
-        self.root.geometry(f"+{x}+{y}")
+        self._position()
 
-        # arrastar a janela
+        # arrastar janela
         self._drag = {}
 
         def start_drag(event):
@@ -93,15 +80,49 @@ class AnswerOverlay:
         frame.bind("<ButtonPress-1>", start_drag)
         frame.bind("<B1-Motion>", do_drag)
 
+        self._ready.set()
         self.root.mainloop()
 
+    def _position(self):
+        self.root.update_idletasks()
+        w = self.root.winfo_reqwidth()
+        h = self.root.winfo_reqheight()
+        sw = self.root.winfo_screenwidth()
+        sh = self.root.winfo_screenheight()
+        x = sw - w - 20
+        y = sh - h - 60
+        self.root.geometry(f"+{x}+{y}")
+
+    def _set_text(self, text: str):
+        """Atualiza o texto dentro do mainloop do tkinter."""
+        if not self.text_widget or not self.root:
+            return
+        lines = text.count("\n") + 2
+        height = max(3, min(lines, 20))
+        self.text_widget.config(state=tk.NORMAL, height=height)
+        self.text_widget.delete("1.0", tk.END)
+        self.text_widget.insert(tk.END, text)
+        self.text_widget.config(state=tk.DISABLED)
+        self._position()
+
     def show_loading(self):
-        self.show("Analisando questão...")
+        """Abre o overlay com mensagem de carregamento."""
+        self._ready.clear()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+        self._ready.wait(timeout=3)
+
+    def update(self, text: str):
+        """Atualiza o texto do overlay já aberto (thread-safe)."""
+        if self.root:
+            self.root.after(0, lambda: self._set_text(text))
 
     def close(self):
         if self.root:
             try:
-                self.root.destroy()
+                self.root.after(0, self.root.destroy)
             except Exception:
                 pass
             self.root = None
+            self.text_widget = None
+            self._ready.clear()
