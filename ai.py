@@ -37,8 +37,8 @@ Questão:
 PROVIDERS = {
     "Anthropic": {
         "models": {
-            "Haiku (rápido/barato)": "claude-haiku-4-5-20251001",
-            "Sonnet (mais preciso)": "claude-sonnet-5-20251001",
+            "Haiku latest (rápido/barato)": "claude-haiku-4-5-latest",
+            "Sonnet latest (mais preciso)": "claude-sonnet-4-5-latest",
             "Personalizado": "__custom__",
         },
         "env_key": "ANTHROPIC_API_KEY",
@@ -53,8 +53,8 @@ PROVIDERS = {
     },
     "Google": {
         "models": {
-            "Gemini Flash (rápido/barato)": "gemini-3.6-flash",
-            "Gemini Pro (mais preciso)": "gemini-2.5-pro",
+            "Gemini Flash latest (rápido/barato)": "gemini-flash-latest",
+            "Gemini Pro latest (mais preciso)": "gemini-pro-latest",
             "Personalizado": "__custom__",
         },
         "env_key": "GOOGLE_API_KEY",
