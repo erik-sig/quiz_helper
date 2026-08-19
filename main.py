@@ -101,7 +101,10 @@ def _is_space(key):
     return key == keyboard.Key.space or (hasattr(key, "char") and key.char == " ")
 
 def _is_c(key):
-    return hasattr(key, "char") and key.char in ("c", "C")
+    return (
+        (hasattr(key, "char") and key.char in ("c", "C", "\x03")) or
+        (hasattr(key, "vk") and key.vk == 67)
+    )
 
 def _clipboard_hotkey_active():
     return (
@@ -122,8 +125,7 @@ def _show_or_update(message: str):
     if overlay.root:
         overlay.update(message)
     else:
-        overlay.show_loading()
-        overlay.update(message)
+        overlay.show_loading(message)
 
 
 def trigger_clipboard():

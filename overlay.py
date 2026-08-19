@@ -8,6 +8,7 @@ class AnswerOverlay:
         self.text_widget = None
         self._thread = None
         self._ready = threading.Event()
+        self._initial_message = "Analisando questão..."
 
     def _run(self):
         self.root = tk.Tk()
@@ -57,7 +58,7 @@ class AnswerOverlay:
             width=48,
             height=3,
         )
-        self.text_widget.insert(tk.END, "Analisando questão...")
+        self.text_widget.insert(tk.END, self._initial_message)
         self.text_widget.config(state=tk.DISABLED)
         self.text_widget.pack()
 
@@ -105,8 +106,9 @@ class AnswerOverlay:
         self.text_widget.config(state=tk.DISABLED)
         self._position()
 
-    def show_loading(self):
-        """Abre o overlay com mensagem de carregamento."""
+    def show_loading(self, message: str = "Analisando questão..."):
+        """Abre o overlay com mensagem inicial."""
+        self._initial_message = message
         self._ready.clear()
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
