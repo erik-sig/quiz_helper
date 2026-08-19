@@ -4,15 +4,26 @@ import sys
 import os
 from dotenv import load_dotenv
 from pynput import keyboard
+import tkinter as tk
 
 load_dotenv()
 from capture import capture_region, take_screenshot
 from overlay import AnswerOverlay
-from ai import ask_question, PROVIDERS
+from ai import ask_from_image, ask_from_text, PROVIDERS
+
+
+def get_clipboard_text() -> str | None:
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        text = root.clipboard_get()
+        root.destroy()
+        return text.strip() if text.strip() else None
+    except Exception:
+        return None
 
 
 def select_provider_and_model() -> tuple[str, str] | None:
-    """Interactive menu to select provider and model."""
     providers = list(PROVIDERS.keys())
 
     print("╔══════════════════════════════╗")
@@ -69,6 +80,9 @@ def select_provider_and_model() -> tuple[str, str] | None:
             pass
         print("Opção inválida. Tente novamente.")
 
+    if model_id == "__custom__":
+        model_id = input("Digite o ID do modelo: ").strip()
+
     print(f"\n✓ Usando {provider} — {model_label}")
     return provider, model_id
 
@@ -79,6 +93,7 @@ processing = threading.Event()
 selected_provider: str = ""
 selected_model: str = ""
 
+
 def _is_ctrl(key):
     return key in (keyboard.Key.ctrl, keyboard.Key.ctrl_l, keyboard.Key.ctrl_r)
 
@@ -88,7 +103,17 @@ def _is_shift(key):
 def _is_space(key):
     return key == keyboard.Key.space or (hasattr(key, "char") and key.char == " ")
 
-def _hotkey_active():
+def _is_c(key):
+    return hasattr(key, "char") and key.char in ("c", "C")
+
+def _clipboard_hotkey_active():
+    return (
+        any(_is_ctrl(k) for k in pressed_keys)
+        and any(_is_shift(k) for k in pressed_keys)
+        and any(_is_c(k) for k in pressed_keys)
+    )
+
+def _image_hotkey_active():
     return (
         any(_is_ctrl(k) for k in pressed_keys)
         and any(_is_shift(k) for k in pressed_keys)
@@ -96,7 +121,43 @@ def _hotkey_active():
     )
 
 
-def on_trigger():
+def _show_or_update(message: str):
+    if overlay.root:
+        overlay.update(message)
+    else:
+        overlay.show_loading()
+        overlay.update(message)
+
+
+def trigger_clipboard():
+    if processing.is_set():
+        return
+    processing.set()
+
+    text = get_clipboard_text()
+    if not text:
+        print("[INFO] Clipboard vazio ou sem texto.")
+        processing.clear()
+        return
+
+    print(f"[INFO] Texto do clipboard ({len(text)} chars): {text[:80]}...")
+    _show_or_update("Analisando questão...")
+
+    def run():
+        try:
+            answer = ask_from_text(text, selected_provider, selected_model)
+            print(f"[INFO] Resposta:\n{answer}")
+            overlay.update(answer)
+        except Exception as e:
+            print(f"[ERRO] {type(e).__name__}: {e}")
+            overlay.update(f"Erro: {type(e).__name__}\n{e}")
+        finally:
+            processing.clear()
+
+    threading.Thread(target=run, daemon=True).start()
+
+
+def trigger_image():
     if processing.is_set():
         return
     processing.set()
@@ -110,18 +171,13 @@ def on_trigger():
         return
 
     print(f"[INFO] Região capturada: {region}")
-    if overlay.root:
-        overlay.update("Analisando questão...")
-    else:
-        overlay.show_loading()
+    _show_or_update("Analisando questão...")
 
     def run():
         try:
-            print("[INFO] Capturando screenshot...")
             image = take_screenshot(region)
-            print("[INFO] Enviando para a IA...")
-            answer = ask_question(image, selected_provider, selected_model)
-            print(f"[INFO] Resposta recebida:\n{answer}")
+            answer = ask_from_image(image, selected_provider, selected_model)
+            print(f"[INFO] Resposta:\n{answer}")
             overlay.update(answer)
         except Exception as e:
             print(f"[ERRO] {type(e).__name__}: {e}")
@@ -134,8 +190,10 @@ def on_trigger():
 
 def on_press(key):
     pressed_keys.add(key)
-    if _hotkey_active():
-        threading.Thread(target=on_trigger, daemon=True).start()
+    if _clipboard_hotkey_active():
+        threading.Thread(target=trigger_clipboard, daemon=True).start()
+    elif _image_hotkey_active():
+        threading.Thread(target=trigger_image, daemon=True).start()
 
 
 def on_release(key):
@@ -151,8 +209,10 @@ def main():
 
     selected_provider, selected_model = result
 
-    print("\nAtivado! Pressione Ctrl + Shift + Espaço para capturar uma questão.")
-    print("Pressione Ctrl+C para encerrar.\n")
+    print("\nAtivado!")
+    print("  Ctrl + Shift + C      → analisar texto copiado (clipboard)")
+    print("  Ctrl + Shift + Espaço → capturar região da tela")
+    print("  Ctrl + C no terminal  → encerrar\n")
 
     with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
         try:
