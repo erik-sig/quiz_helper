@@ -100,17 +100,19 @@ def _is_shift(key):
 def _is_space(key):
     return key == keyboard.Key.space or (hasattr(key, "char") and key.char == " ")
 
-def _is_c(key):
+def _is_alt(key):
+    return key in (keyboard.Key.alt, keyboard.Key.alt_l, keyboard.Key.alt_r, keyboard.Key.alt_gr)
+
+def _is_p(key):
     return (
-        (hasattr(key, "char") and key.char in ("c", "C", "\x03")) or
-        (hasattr(key, "vk") and key.vk == 67)
+        (hasattr(key, "char") and key.char in ("p", "P")) or
+        (hasattr(key, "vk") and key.vk == 80)
     )
 
 def _clipboard_hotkey_active():
     return (
-        any(_is_ctrl(k) for k in pressed_keys)
-        and any(_is_shift(k) for k in pressed_keys)
-        and any(_is_c(k) for k in pressed_keys)
+        any(_is_alt(k) for k in pressed_keys)
+        and any(_is_p(k) for k in pressed_keys)
     )
 
 def _image_hotkey_active():
@@ -209,7 +211,7 @@ def main():
     selected_provider, selected_model = result
 
     print("\nAtivado!")
-    print("  Ctrl + Shift + C      → analisar texto copiado (clipboard)")
+    print("  Alt + P               → analisar texto copiado (clipboard)")
     print("  Ctrl + Shift + Espaço → capturar região da tela")
     print("  Ctrl + C no terminal  → encerrar\n")
 
