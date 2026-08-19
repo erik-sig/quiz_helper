@@ -110,7 +110,10 @@ def on_trigger():
         return
 
     print(f"[INFO] Região capturada: {region}")
-    overlay.show_loading()
+    if overlay.root:
+        overlay.update("Analisando questão...")
+    else:
+        overlay.show_loading()
 
     def run():
         try:
