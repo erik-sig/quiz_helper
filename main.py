@@ -30,17 +30,21 @@ def select_provider_and_model() -> tuple[str, str] | None:
 
     available = []
     for i, name in enumerate(providers, 1):
-        key = PROVIDERS[name]["env_key"]
-        has_key = bool(os.environ.get(key))
-        status = "✓" if has_key else "✗ sem chave"
-        print(f"  [{i}] {name:<12} ({status})")
-        if has_key:
+        env_key = PROVIDERS[name]["env_key"]
+        if env_key is None:
+            status = "local"
             available.append(name)
+        else:
+            has_key = bool(os.environ.get(env_key))
+            status = "✓" if has_key else "✗ sem chave"
+            if has_key:
+                available.append(name)
+        print(f"  [{i}] {name:<16} ({status})")
 
     print()
     while True:
         try:
-            choice = input("Escolha [1-3]: ").strip()
+            choice = input(f"Escolha [1-{len(providers)}]: ").strip()
             idx = int(choice) - 1
             if 0 <= idx < len(providers):
                 provider = providers[idx]
@@ -49,10 +53,10 @@ def select_provider_and_model() -> tuple[str, str] | None:
             pass
         print("Opção inválida. Tente novamente.")
 
-    if provider not in available:
-        key_name = PROVIDERS[provider]["env_key"]
-        print(f"\n⚠ Chave {key_name} não encontrada.")
-        print(f"  Configure com: export {key_name}=sua_chave")
+    env_key = PROVIDERS[provider]["env_key"]
+    if env_key is not None and provider not in available:
+        print(f"\n⚠ Chave {env_key} não encontrada.")
+        print(f"  Configure com: export {env_key}=sua_chave")
         cont = input("\nContinuar mesmo assim? [s/N]: ").strip().lower()
         if cont != "s":
             return None

@@ -34,6 +34,8 @@ Regras:
 Questão:
 {text}"""
 
+OLLAMA_BASE_URL = "http://localhost:11434"
+
 PROVIDERS = {
     "Anthropic": {
         "models": {
@@ -58,6 +60,14 @@ PROVIDERS = {
             "Personalizado": "__custom__",
         },
         "env_key": "GOOGLE_API_KEY",
+    },
+    "Ollama (local)": {
+        "models": {
+            "Qwen2.5 7b (recomendado)": "qwen2.5:7b",
+            "Llama3.2 3b (leve)": "llama3.2",
+            "Personalizado": "__custom__",
+        },
+        "env_key": None,
     },
 }
 
@@ -183,16 +193,55 @@ def ask_google_text(text: str, model: str) -> str:
     return result
 
 
+def _ollama_request(payload: dict) -> str:
+    import urllib.request
+    import urllib.error
+    import json
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        f"{OLLAMA_BASE_URL}/api/generate",
+        data=data,
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            result = json.loads(resp.read())
+        return result["response"]
+    except urllib.error.URLError:
+        raise ConnectionError(
+            "Ollama não está rodando. Abra o Ollama antes de usar esta opção."
+        )
+
+
+def ask_ollama_text(text: str, model: str) -> str:
+    return _ollama_request({
+        "model": model,
+        "prompt": PROMPT_TEXT.format(text=text),
+        "stream": False,
+    })
+
+
+def ask_ollama_image(image: Image.Image, model: str) -> str:
+    return _ollama_request({
+        "model": model,
+        "prompt": PROMPT_IMAGE,
+        "images": [_image_to_base64(image)],
+        "stream": False,
+    })
+
+
 _IMAGE_HANDLERS = {
     "Anthropic": ask_anthropic_image,
     "OpenAI": ask_openai_image,
     "Google": ask_google_image,
+    "Ollama (local)": ask_ollama_image,
 }
 
 _TEXT_HANDLERS = {
     "Anthropic": ask_anthropic_text,
     "OpenAI": ask_openai_text,
     "Google": ask_google_text,
+    "Ollama (local)": ask_ollama_text,
 }
 
 
