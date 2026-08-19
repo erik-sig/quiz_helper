@@ -5,3 +5,4 @@ mss
 pynput
 pillow
 python-dotenv
+pyperclip

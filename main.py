@@ -4,7 +4,7 @@ import sys
 import os
 from dotenv import load_dotenv
 from pynput import keyboard
-import tkinter as tk
+import pyperclip
 
 load_dotenv()
 from capture import capture_region, take_screenshot
@@ -14,11 +14,8 @@ from ai import ask_from_image, ask_from_text, PROVIDERS
 
 def get_clipboard_text() -> str | None:
     try:
-        root = tk.Tk()
-        root.withdraw()
-        text = root.clipboard_get()
-        root.destroy()
-        return text.strip() if text.strip() else None
+        text = pyperclip.paste()
+        return text.strip() if text and text.strip() else None
     except Exception:
         return None
 
