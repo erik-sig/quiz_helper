@@ -3,7 +3,7 @@ import threading
 import sys
 import os
 from dotenv import load_dotenv
-from pynput import keyboard
+import keyboard
 import pyperclip
 
 load_dotenv()
@@ -85,42 +85,9 @@ def select_provider_and_model() -> tuple[str, str] | None:
 
 
 overlay = AnswerOverlay()
-pressed_keys = set()
 processing = threading.Event()
 selected_provider: str = ""
 selected_model: str = ""
-
-
-def _is_ctrl(key):
-    return key in (keyboard.Key.ctrl, keyboard.Key.ctrl_l, keyboard.Key.ctrl_r)
-
-def _is_shift(key):
-    return key in (keyboard.Key.shift, keyboard.Key.shift_l, keyboard.Key.shift_r)
-
-def _is_space(key):
-    return key == keyboard.Key.space or (hasattr(key, "char") and key.char == " ")
-
-def _is_alt(key):
-    return key in (keyboard.Key.alt, keyboard.Key.alt_l, keyboard.Key.alt_r, keyboard.Key.alt_gr)
-
-def _is_p(key):
-    return (
-        (hasattr(key, "char") and key.char in ("p", "P")) or
-        (hasattr(key, "vk") and key.vk == 80)
-    )
-
-def _clipboard_hotkey_active():
-    return (
-        any(_is_alt(k) for k in pressed_keys)
-        and any(_is_p(k) for k in pressed_keys)
-    )
-
-def _image_hotkey_active():
-    return (
-        any(_is_ctrl(k) for k in pressed_keys)
-        and any(_is_shift(k) for k in pressed_keys)
-        and any(_is_space(k) for k in pressed_keys)
-    )
 
 
 def _show_or_update(message: str):
@@ -189,18 +156,6 @@ def trigger_image():
     threading.Thread(target=run, daemon=True).start()
 
 
-def on_press(key):
-    pressed_keys.add(key)
-    if _clipboard_hotkey_active():
-        threading.Thread(target=trigger_clipboard, daemon=True).start()
-    elif _image_hotkey_active():
-        threading.Thread(target=trigger_image, daemon=True).start()
-
-
-def on_release(key):
-    pressed_keys.discard(key)
-
-
 def main():
     global selected_provider, selected_model
 
@@ -210,17 +165,19 @@ def main():
 
     selected_provider, selected_model = result
 
+    keyboard.add_hotkey("alt+p", lambda: threading.Thread(target=trigger_clipboard, daemon=True).start())
+    keyboard.add_hotkey("ctrl+shift+space", lambda: threading.Thread(target=trigger_image, daemon=True).start())
+
     print("\nAtivado!")
     print("  Alt + P               → analisar texto copiado (clipboard)")
     print("  Ctrl + Shift + Espaço → capturar região da tela")
     print("  Ctrl + C no terminal  → encerrar\n")
 
-    with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
-        try:
-            listener.join()
-        except KeyboardInterrupt:
-            print("\nEncerrado.")
-            sys.exit(0)
+    try:
+        keyboard.wait()
+    except KeyboardInterrupt:
+        print("\nEncerrado.")
+        sys.exit(0)
 
 
 if __name__ == "__main__":

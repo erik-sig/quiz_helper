@@ -3,6 +3,7 @@ openai
 google-genai
 mss
 pynput
+keyboard
 pillow
 python-dotenv
 pyperclip
