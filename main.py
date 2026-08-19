@@ -2,7 +2,10 @@
 import threading
 import sys
 import os
+from dotenv import load_dotenv
 from pynput import keyboard
+
+load_dotenv()
 from capture import capture_region, take_screenshot
 from overlay import AnswerOverlay
 from ai import ask_question, PROVIDERS
