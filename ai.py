@@ -34,8 +34,8 @@ PROVIDERS = {
     },
     "Google": {
         "models": {
-            "Gemini Flash (rápido/barato)": "gemini-1.5-flash",
-            "Gemini Pro (mais preciso)": "gemini-1.5-pro",
+            "Gemini Flash (rápido/barato)": "gemini-2.0-flash",
+            "Gemini Pro (mais preciso)": "gemini-2.5-pro",
         },
         "env_key": "GOOGLE_API_KEY",
     },
