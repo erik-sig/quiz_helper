@@ -79,7 +79,21 @@ processing = threading.Event()
 selected_provider: str = ""
 selected_model: str = ""
 
-HOTKEY = {keyboard.Key.ctrl_l, keyboard.Key.shift, keyboard.KeyCode(char=" ")}
+def _is_ctrl(key):
+    return key in (keyboard.Key.ctrl, keyboard.Key.ctrl_l, keyboard.Key.ctrl_r)
+
+def _is_shift(key):
+    return key in (keyboard.Key.shift, keyboard.Key.shift_l, keyboard.Key.shift_r)
+
+def _is_space(key):
+    return key == keyboard.Key.space or (hasattr(key, "char") and key.char == " ")
+
+def _hotkey_active():
+    return (
+        any(_is_ctrl(k) for k in pressed_keys)
+        and any(_is_shift(k) for k in pressed_keys)
+        and any(_is_space(k) for k in pressed_keys)
+    )
 
 
 def on_trigger():
@@ -113,7 +127,7 @@ def on_trigger():
 
 def on_press(key):
     pressed_keys.add(key)
-    if all(k in pressed_keys for k in HOTKEY):
+    if _hotkey_active():
         threading.Thread(target=on_trigger, daemon=True).start()
 
 
